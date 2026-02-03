@@ -3,6 +3,11 @@ namespace HtmlToPdfPackage;
 /// <summary>
 /// Convenience wrapper for converting HTML to PDF using the default renderer.
 /// </summary>
+/// <remarks>
+/// This static helper creates a new renderer instance for each call. For better performance
+/// when converting multiple documents, create a single PlaywrightHtmlToPdfRenderer instance
+/// and reuse it across multiple conversions, then dispose it when done.
+/// </remarks>
 public static class HtmlToPdfConverter
 {
     /// <summary>
@@ -12,12 +17,12 @@ public static class HtmlToPdfConverter
     /// <param name="options">Rendering options.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>PDF data as a byte array.</returns>
-    public static Task<byte[]> ConvertHtmlToPdfAsync(
+    public static async Task<byte[]> ConvertHtmlToPdfAsync(
         string html,
         HtmlToPdfOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        var renderer = new PlaywrightHtmlToPdfRenderer();
-        return renderer.ConvertHtmlToPdfAsync(html, options, cancellationToken);
+        await using var renderer = new PlaywrightHtmlToPdfRenderer();
+        return await renderer.ConvertHtmlToPdfAsync(html, options, cancellationToken);
     }
 }

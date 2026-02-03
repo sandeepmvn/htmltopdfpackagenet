@@ -63,7 +63,9 @@ startup script to install the dependencies listed in the Playwright documentatio
 
 ## Usage
 
-## Usage
+### Basic usage (one-time conversion)
+
+For simple one-time conversions, use the static `HtmlToPdfConverter` helper:
 
 ```csharp
 using HtmlToPdfPackage;
@@ -81,6 +83,28 @@ var options = new HtmlToPdfOptions
 
 byte[] pdf = await HtmlToPdfConverter.ConvertHtmlToPdfAsync(html, options);
 File.WriteAllBytes("output.pdf", pdf);
+```
+
+### Advanced usage (multiple conversions)
+
+For better performance when converting multiple documents, create a single `PlaywrightHtmlToPdfRenderer` 
+instance and reuse it across conversions. This avoids the overhead of launching a new browser instance 
+for each conversion (typically hundreds of milliseconds):
+
+```csharp
+using HtmlToPdfPackage;
+
+await using var renderer = new PlaywrightHtmlToPdfRenderer();
+
+// Convert multiple documents efficiently
+for (int i = 0; i < 10; i++)
+{
+    var html = $"<html><body><h1>Document {i}</h1></body></html>";
+    byte[] pdf = await renderer.ConvertHtmlToPdfAsync(html);
+    await File.WriteAllBytesAsync($"output-{i}.pdf", pdf);
+}
+
+// The renderer is automatically disposed when leaving the using block
 ```
 
 ## Security Notes
