@@ -12,6 +12,12 @@ public static class HtmlToPdfConverter
     /// <param name="options">Rendering options.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>PDF data as a byte array.</returns>
+    /// <remarks>
+    /// This convenience method creates a new Playwright instance and browser for each call,
+    /// which is inefficient for frequent conversions. For applications performing multiple
+    /// conversions, create and reuse a <see cref="PlaywrightHtmlToPdfRenderer"/> instance
+    /// instead to avoid the overhead of launching Playwright and a browser repeatedly.
+    /// </remarks>
     public static Task<byte[]> ConvertHtmlToPdfAsync(
         string html,
         HtmlToPdfOptions? options = null,

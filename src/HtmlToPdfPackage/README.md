@@ -63,7 +63,9 @@ startup script to install the dependencies listed in the Playwright documentatio
 
 ## Usage
 
-## Usage
+### Quick start (infrequent conversions)
+
+For simple, one-off or infrequent conversions, use the static convenience method:
 
 ```csharp
 using HtmlToPdfPackage;
@@ -76,11 +78,59 @@ var options = new HtmlToPdfOptions
     BaseUrl = "https://example.com",
     AllowRemoteResources = false,
     DisableJavaScript = true,
-    MaxHtmlLength = 1_000_000 // example limit in characters/bytes
+    MaxHtmlLength = 1_000_000
 };
 
 byte[] pdf = await HtmlToPdfConverter.ConvertHtmlToPdfAsync(html, options);
 File.WriteAllBytes("output.pdf", pdf);
+```
+
+**Note:** The static `ConvertHtmlToPdfAsync` method creates a new Playwright instance and browser for each call.
+This is convenient for infrequent conversions but inefficient for frequent use.
+
+### Frequent conversions (recommended for APIs and batch processing)
+
+For applications that perform multiple conversions (e.g., web APIs, background jobs, batch processing),
+create and reuse a `PlaywrightHtmlToPdfRenderer` instance to avoid the overhead of repeatedly launching
+Playwright and a browser:
+
+```csharp
+using HtmlToPdfPackage;
+
+// Create a renderer instance once (e.g., as a singleton or scoped service)
+var renderer = new PlaywrightHtmlToPdfRenderer();
+
+// Reuse the renderer for multiple conversions
+var html1 = "<html><body><h1>Document 1</h1></body></html>";
+var pdf1 = await renderer.ConvertHtmlToPdfAsync(html1);
+
+var html2 = "<html><body><h1>Document 2</h1></body></html>";
+var pdf2 = await renderer.ConvertHtmlToPdfAsync(html2);
+```
+
+In ASP.NET Core, register the renderer as a singleton or scoped service:
+
+```csharp
+// Program.cs or Startup.cs
+builder.Services.AddSingleton<IHtmlToPdfRenderer, PlaywrightHtmlToPdfRenderer>();
+
+// Usage in a controller or service
+public class PdfController : ControllerBase
+{
+    private readonly IHtmlToPdfRenderer _renderer;
+
+    public PdfController(IHtmlToPdfRenderer renderer)
+    {
+        _renderer = renderer;
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> GeneratePdf([FromBody] string html)
+    {
+        var pdf = await _renderer.ConvertHtmlToPdfAsync(html);
+        return File(pdf, "application/pdf", "output.pdf");
+    }
+}
 ```
 
 ## Security Notes
