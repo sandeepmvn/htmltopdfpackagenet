@@ -140,15 +140,10 @@ public sealed class PlaywrightHtmlToPdfRenderer : IHtmlToPdfRenderer, IAsyncDisp
 
     private async Task EnsureInitializedAsync(CancellationToken cancellationToken)
     {
-        if (_playwright is not null && _browser is not null)
-        {
-            return;
-        }
-
         await _initLock.WaitAsync(cancellationToken);
         try
         {
-            // Check again after acquiring lock to prevent use-after-dispose
+            // Check for disposal and initialization after acquiring lock
             ObjectDisposedException.ThrowIf(_disposed, this);
 
             if (_playwright is not null && _browser is not null)
