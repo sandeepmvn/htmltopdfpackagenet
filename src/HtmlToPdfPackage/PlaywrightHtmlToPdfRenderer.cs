@@ -148,17 +148,34 @@ public sealed class PlaywrightHtmlToPdfRenderer : IHtmlToPdfRenderer, IAsyncDisp
         await _initLock.WaitAsync(cancellationToken);
         try
         {
+            // Check again after acquiring lock to prevent use-after-dispose
+            ObjectDisposedException.ThrowIf(_disposed, this);
+
             if (_playwright is not null && _browser is not null)
             {
                 return;
             }
 
-            _playwright = await Playwright.CreateAsync();
-            _browser = await _playwright.Chromium.LaunchAsync(
-                new BrowserTypeLaunchOptions
-                {
-                    Headless = true
-                });
+            IPlaywright? playwright = null;
+            try
+            {
+                playwright = await Playwright.CreateAsync();
+                var browser = await playwright.Chromium.LaunchAsync(
+                    new BrowserTypeLaunchOptions
+                    {
+                        Headless = true
+                    });
+
+                // Only set fields after successful initialization
+                _playwright = playwright;
+                _browser = browser;
+            }
+            catch
+            {
+                // Clean up on failure
+                playwright?.Dispose();
+                throw;
+            }
         }
         finally
         {
@@ -169,19 +186,27 @@ public sealed class PlaywrightHtmlToPdfRenderer : IHtmlToPdfRenderer, IAsyncDisp
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        if (_disposed)
+        await _initLock.WaitAsync();
+        try
         {
-            return;
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+
+            if (_browser is not null)
+            {
+                await _browser.DisposeAsync();
+            }
+
+            _playwright?.Dispose();
         }
-
-        _disposed = true;
-
-        if (_browser is not null)
+        finally
         {
-            await _browser.DisposeAsync();
+            _initLock.Release();
+            _initLock.Dispose();
         }
-
-        _playwright?.Dispose();
-        _initLock.Dispose();
     }
 }
