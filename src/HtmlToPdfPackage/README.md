@@ -75,7 +75,8 @@ var options = new HtmlToPdfOptions
     PrintBackground = true,
     BaseUrl = "https://example.com",
     AllowRemoteResources = false,
-    DisableJavaScript = true
+    DisableJavaScript = true,
+    MaxHtmlLength = 1_000_000 // example limit in characters/bytes
 };
 
 byte[] pdf = await HtmlToPdfConverter.ConvertHtmlToPdfAsync(html, options);
