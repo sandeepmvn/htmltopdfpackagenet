@@ -216,8 +216,14 @@ public sealed class PlaywrightHtmlToPdfRenderer : IHtmlToPdfRenderer, IAsyncDisp
             _initLock.Release();
         }
 
-        // Dispose the semaphore after releasing the lock and marking as disposed
-        // At this point, _disposed is true so no new operations will try to acquire the lock
+        // Dispose the semaphore after releasing the lock and marking as disposed.
+        // Note: There's a small theoretical race window where a thread could pass the
+        // pre-lock check at line 144 and attempt to acquire the lock while we dispose it.
+        // However, this is extremely unlikely because:
+        // 1. _disposed is volatile, ensuring visibility
+        // 2. The window is microseconds at most
+        // 3. If it happens, the thread will get an ObjectDisposedException from the semaphore
+        // This is an acceptable tradeoff vs. the complexity of additional synchronization.
         _initLock.Dispose();
     }
 }
