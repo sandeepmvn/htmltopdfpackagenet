@@ -6,13 +6,13 @@ namespace HtmlToPdfPackage;
 /// HTML to PDF renderer backed by Microsoft Playwright (Chromium).
 /// Create a single instance and reuse it for multiple conversions to avoid the overhead
 /// of launching a new browser instance for each conversion (typically hundreds of milliseconds).
-/// This class implements IDisposable and must be properly disposed to release browser resources.
+/// This class implements IAsyncDisposable and must be properly disposed to release browser resources.
 /// </summary>
 public sealed class PlaywrightHtmlToPdfRenderer : IHtmlToPdfRenderer, IAsyncDisposable
 {
     private readonly SemaphoreSlim _initLock = new(1, 1);
-    private IPlaywright? _playwright;
-    private IBrowser? _browser;
+    private volatile IPlaywright? _playwright;
+    private volatile IBrowser? _browser;
     private bool _disposed;
 
     /// <inheritdoc />
