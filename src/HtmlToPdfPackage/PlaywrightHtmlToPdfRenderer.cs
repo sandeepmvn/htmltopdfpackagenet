@@ -13,7 +13,7 @@ public sealed class PlaywrightHtmlToPdfRenderer : IHtmlToPdfRenderer, IAsyncDisp
     private readonly SemaphoreSlim _initLock = new(1, 1);
     private IPlaywright? _playwright;
     private IBrowser? _browser;
-    private bool _disposed;
+    private volatile bool _disposed;
 
     /// <inheritdoc />
     public async Task<byte[]> ConvertHtmlToPdfAsync(
@@ -140,10 +140,13 @@ public sealed class PlaywrightHtmlToPdfRenderer : IHtmlToPdfRenderer, IAsyncDisp
 
     private async Task EnsureInitializedAsync(CancellationToken cancellationToken)
     {
+        // Check disposed before attempting to acquire lock
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         await _initLock.WaitAsync(cancellationToken);
         try
         {
-            // Check for disposal and initialization after acquiring lock
+            // Check again after acquiring lock
             ObjectDisposedException.ThrowIf(_disposed, this);
 
             if (_playwright is not null && _browser is not null)
@@ -185,6 +188,12 @@ public sealed class PlaywrightHtmlToPdfRenderer : IHtmlToPdfRenderer, IAsyncDisp
     /// </remarks>
     public async ValueTask DisposeAsync()
     {
+        // Quick check to avoid unnecessary lock acquisition
+        if (_disposed)
+        {
+            return;
+        }
+
         await _initLock.WaitAsync();
         try
         {
@@ -207,7 +216,8 @@ public sealed class PlaywrightHtmlToPdfRenderer : IHtmlToPdfRenderer, IAsyncDisp
             _initLock.Release();
         }
 
-        // Dispose the semaphore after releasing the lock
+        // Dispose the semaphore after releasing the lock and marking as disposed
+        // At this point, _disposed is true so no new operations will try to acquire the lock
         _initLock.Dispose();
     }
 }
