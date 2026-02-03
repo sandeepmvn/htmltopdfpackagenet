@@ -11,8 +11,8 @@ namespace HtmlToPdfPackage;
 public sealed class PlaywrightHtmlToPdfRenderer : IHtmlToPdfRenderer, IAsyncDisposable
 {
     private readonly SemaphoreSlim _initLock = new(1, 1);
-    private volatile IPlaywright? _playwright;
-    private volatile IBrowser? _browser;
+    private IPlaywright? _playwright;
+    private IBrowser? _browser;
     private bool _disposed;
 
     /// <inheritdoc />
@@ -179,6 +179,10 @@ public sealed class PlaywrightHtmlToPdfRenderer : IHtmlToPdfRenderer, IAsyncDisp
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// This method will wait for any ongoing initialization to complete before disposing resources.
+    /// If disposal must complete quickly, avoid calling from time-sensitive contexts.
+    /// </remarks>
     public async ValueTask DisposeAsync()
     {
         await _initLock.WaitAsync();
@@ -201,7 +205,9 @@ public sealed class PlaywrightHtmlToPdfRenderer : IHtmlToPdfRenderer, IAsyncDisp
         finally
         {
             _initLock.Release();
-            _initLock.Dispose();
         }
+
+        // Dispose the semaphore after releasing the lock
+        _initLock.Dispose();
     }
 }
